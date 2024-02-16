@@ -218,7 +218,7 @@ if __name__ == "__main__":
     st.header('Question-Answering Application', divider='green')
     with st.sidebar:
 
-        # api_key = st.text_input('OpenAI API Key:', type='password')
+        api_key = st.text_input('OpenAI API Key:', type='password')
         # if api_key:
         #     os.environ['OPENAI_API_KEY'] = api_key
             # st.success("Api key entered")
