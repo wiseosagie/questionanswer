@@ -219,8 +219,9 @@ if __name__ == "__main__":
     with st.sidebar:
 
         api_key = st.text_input('OpenAI API Key:', type='password')
-        # if api_key:
-        #     os.environ['OPENAI_API_KEY'] = api_key
+       
+        if api_key:
+            os.environ['OPENAI_API_KEY'] = api_key
             # st.success("Api key entered")
         # else:
         #     st.error("API key is missing. Please provide a valid API key.")
