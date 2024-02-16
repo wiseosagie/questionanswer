@@ -222,7 +222,7 @@ if __name__ == "__main__":
        
         if api_key:
             os.environ['OPENAI_API_KEY'] = api_key
-            # st.success("Api key entered")
+            st.success("Api key entered")
         # else:
         #     st.error("API key is missing. Please provide a valid API key.")
         chunk_size = st.number_input('Chunk size:', min_value=100, max_value=2048, value=512, on_change=clear_history)
@@ -237,11 +237,13 @@ if __name__ == "__main__":
         
         #Get the text data from URL
         # url = ["https://www.wichita.edu/services/its/userservices/documents/ITS_Computer_Purchase_Policy_02-22-19.pdf"]
+       
         url=[url_un]
         if check_url_data:
             with st.spinner('Reading, chunking and embedding file ....'):
-                from langchain_community.document_loaders import UnstructuredURLLoader
-                loader = UnstructuredURLLoader(urls=url)
+                from langchain_community.document_loaders import WebBaseLoader
+                # from langchain_community.document_loaders import UnstructuredURLLoader
+                loader = WebBaseLoader(url)
                 data = loader.load()
                 chunks = chunk_data(data, chunk_size=chunk_size)
                 # st.write(f' Chunk Size : {chunk_size}, Chunks: {len(chunks)}')
