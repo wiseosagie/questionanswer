@@ -71,7 +71,6 @@ def create_embeddings(chunks):
 def ask_and_get_answer(vector_store, q, k):
     from langchain.chains import RetrievalQA
     from langchain.chat_models import ChatOpenAI
-
     llm = ChatOpenAI(model='gpt-3.5-turbo', temperature=1)
     retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={'k':k})
     chain = RetrievalQA.from_chain_type(llm=llm, chain_type='stuff', retriever=retriever)
@@ -79,6 +78,32 @@ def ask_and_get_answer(vector_store, q, k):
 
     answer = chain.run(q)
     return answer
+
+def verify_api_key(api_key):
+    import openai
+        # Set up your OpenAI API key
+    openai.api_key = api_key
+    try:
+         # Make a test request to the OpenAI API
+        response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt="This is a test request to verify the OpenAI API key.",
+        max_tokens=5
+        )
+        print("API key is valid.")
+    except openai.error.AuthenticationError as e:
+        st.write("Your API is invalid, re-enter api. Refresh the page")
+        
+        import time
+        time.sleep(20)
+        # from streamlit_autorefresh import st_autorefresh
+        # st_autorefresh(interval=100, limit=1, key="fizzbuzzcounter")
+        st.experimental_rerun()
+        
+        
+        
+    except Exception as e:
+        print("An error occurred:", e)
 
 # Calculate Cost
 def print_embedding_cost(texts):
@@ -99,6 +124,7 @@ def calculate_embedding_cost(texts):
     return total_tokens, (total_tokens / 1000 * 0.004)
 
 def clear_history():
+    
     if 'history' in st.session_state:
         del st.session_state['history']
 
@@ -154,60 +180,6 @@ if __name__ == "__main__":
 
 
     st.markdown(video_html, unsafe_allow_html=True)
-    
-# <source src="C:\Users\wiseo\Downloads\tech_bg.mp4">
-    # <source type="video/mp4" src="tech_bg.mp4">
-
-     
-# <video autoplay muted loop id="myVideo">
-#                 <source src="https://videos.pond5.com/binary-digital-tech-data-code-footage-009784511_main_xxl.mp4">
-#             Your browser does not support HTML5 video.
-#             </video>
-
-
-
-    # Custom CSS to set the background image of the main body
-    
-#     st.markdown(
-#         """
-#         <style>
-#             [data-testid=stAppViewContainer] {
-#                 background: url("https://images.unsplash.com/photo-1498747946579-bde604cb8f44?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
-#                 background-size: cover;
-#                 }
-#             [data-testid="stHeader"]{
-#                 background-color:rgba(0,0,0,0);
-#             }
-
-#         </style>
-#         """,
-#             unsafe_allow_html=True,
-# )
-    
-    
-    # st.markdown("""
-    #     <style>
-    #         [data-testid=stSidebar] {
-    #             background-color: #87CEEB;
-    #         }
-                    
-    #         [data-testid=StyledLinkIconContainer] {
-    #         font-weight: bold;
-    #         color: green;
-    #         font-size: 40px;    
-    #     }
-    #              [data-testid=stWidgetLabel] {
-    #         font-weight: bold;
-    #         color: white;
-    #         font-size: 3rem !important;
-    #         font-weight: bold;
-    #     }
-                
-    #     </style>
-    #     """, unsafe_allow_html=True)
-    
-    # Custom CSS to set the label color of the text input
-
    
     
 
@@ -222,13 +194,14 @@ if __name__ == "__main__":
        
         if api_key:
             os.environ['OPENAI_API_KEY'] = api_key
-            st.success("Api key entered")
+            # st.success("Api key entered")
         # else:
-        #     st.error("API key is missing. Please provide a valid API key.")
+        #     st.error("API key is missing. Please provide a valid API key. referesh to continue")
+
         chunk_size = st.number_input('Chunk size:', min_value=100, max_value=2048, value=512, on_change=clear_history)
         k = st.number_input('k', min_value=1, max_value=20, value=3, on_change=clear_history)
         st.divider()
-        url_un = st.text_input('Enter URL:')
+        url_un = st.text_input('Enter URL:', key="url_info")
         check_url_data = st.button('Check URL Data', on_click=clear_history)
         st.divider()
         uploaded_file = st.file_uploader('Upload a file:', type=['pdf', 'docx', 'txt', 'csv'])
@@ -241,6 +214,7 @@ if __name__ == "__main__":
         url=[url_un]
         if check_url_data:
             with st.spinner('Reading, chunking and embedding file ....'):
+                verify_api_key(api_key=api_key)
                 from langchain_community.document_loaders import WebBaseLoader
                 # from langchain_community.document_loaders import UnstructuredURLLoader
                 loader = WebBaseLoader(url)
@@ -250,8 +224,10 @@ if __name__ == "__main__":
                 st.write(f"<p style='color: red; font-size: 20px; font-weight: bold;'>Chunk Size: {chunk_size}, Chunks: {len(chunks)}</p>", unsafe_allow_html=True)
                 tokens, embedding_cost = calculate_embedding_cost(chunks)
                 # st.write(f'Embedding cost: ${embedding_cost: .4f}')
+                
                 st.write(f"<p style='color: green; font-size: 20px; font-weight: bold;'>Embedding cost: ${embedding_cost: .4f}</p>", unsafe_allow_html=True)
                 vector_store = create_embeddings(chunks)
+                
                 st.session_state.vs = vector_store
                 st.success("The file has been uploaded, chunked, and embedded successfully")
 
