@@ -71,7 +71,7 @@ def create_embeddings(chunks):
 def ask_and_get_answer(vector_store, q, k):
     from langchain.chains import RetrievalQA
     from langchain.chat_models import ChatOpenAI
-    llm = ChatOpenAI(model='gpt-3.5-turbo', temperature=1)
+    llm = ChatOpenAI(model='gpt-4', temperature=1)
     retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={'k':k})
     chain = RetrievalQA.from_chain_type(llm=llm, chain_type='stuff', retriever=retriever)
     # chain = RetrievalQA.from_llm(llm=openai(), retriever=retriever)
@@ -79,31 +79,56 @@ def ask_and_get_answer(vector_store, q, k):
     answer = chain.run(q)
     return answer
 
+
+# Verify the api key
 def verify_api_key(api_key):
     import openai
         # Set up your OpenAI API key
     openai.api_key = api_key
-    try:
-         # Make a test request to the OpenAI API
-        response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt="This is a test request to verify the OpenAI API key.",
-        max_tokens=5
-        )
-        print("API key is valid.")
-    except openai.error.AuthenticationError as e:
-        st.write("Your API is invalid, re-enter api. Refresh the page")
-        
+    print(api_key)
+    if len(api_key) < 1:
+        print("api_key IS EMPTY")
+        st.write("Your API is EMPTY, re-enter api. Refresh the page")
+    else:
+        try:
+            # Make a test request to the OpenAI API
+            response = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt="This is a test request to verify the OpenAI API key.",
+            max_tokens=5
+            )
+            # print("API key is valid.")
+        except openai.error.AuthenticationError as e:
+            st.write("Your API is invalid, re-enter api. Refresh the page")
+            
+            import time
+            time.sleep(20)
+            # from streamlit_autorefresh import st_autorefresh
+            # st_autorefresh(interval=100, limit=1, key="fizzbuzzcounter")
+            st.experimental_rerun()            
+            
+        except Exception as e:
+            print("An error occurred:", e)
+
+
+def verify_uploaded_file(uploaded_file):
+    if uploaded_file == []:
+        st.error("empty file")
+
+def verify_url_field(verify_url):
+    if len(verify_url) < 4:
+                st.error("URL is missing or incomplete.")
+
+    import validators
+    validation = validators.url(url_un)
+    if validation:
+        print("URL is valid")
+    else:
+        st.error("Enter a valid URL")
         import time
         time.sleep(20)
-        # from streamlit_autorefresh import st_autorefresh
-        # st_autorefresh(interval=100, limit=1, key="fizzbuzzcounter")
         st.experimental_rerun()
-        
-        
-        
-    except Exception as e:
-        print("An error occurred:", e)
+
 
 # Calculate Cost
 def print_embedding_cost(texts):
@@ -191,9 +216,14 @@ if __name__ == "__main__":
     with st.sidebar:
 
         api_key = st.text_input('OpenAI API Key:', type='password')
+
+        # if len(api_key) < 1:
+        #     print("api_key IS EMPTY")
+        #     st.error("API key is missing. Please provide a valid API key. referesh to continue")
+
        
-        if api_key:
-            os.environ['OPENAI_API_KEY'] = api_key
+        # if api_key:
+        #     os.environ['OPENAI_API_KEY'] = api_key
             # st.success("Api key entered")
         # else:
         #     st.error("API key is missing. Please provide a valid API key. referesh to continue")
@@ -205,49 +235,67 @@ if __name__ == "__main__":
         check_url_data = st.button('Check URL Data', on_click=clear_history)
         st.divider()
         uploaded_file = st.file_uploader('Upload a file:', type=['pdf', 'docx', 'txt', 'csv'])
+        
         add_data = st.button('Add Data', on_click=clear_history)
        
         
         #Get the text data from URL
         # url = ["https://www.wichita.edu/services/its/userservices/documents/ITS_Computer_Purchase_Policy_02-22-19.pdf"]
-       
+        print(url_un)
         url=[url_un]
         if check_url_data:
-            with st.spinner('Reading, chunking and embedding file ....'):
+            if len(api_key) < 1:
+                st.error("API key is missing. Please provide a valid API key. referesh to continue")
+
+            if api_key:
+                os.environ['OPENAI_API_KEY'] = api_key
                 verify_api_key(api_key=api_key)
-                from langchain_community.document_loaders import WebBaseLoader
-                # from langchain_community.document_loaders import UnstructuredURLLoader
-                loader = WebBaseLoader(url)
-                data = loader.load()
-                chunks = chunk_data(data, chunk_size=chunk_size)
-                # st.write(f' Chunk Size : {chunk_size}, Chunks: {len(chunks)}')
-                st.write(f"<p style='color: red; font-size: 20px; font-weight: bold;'>Chunk Size: {chunk_size}, Chunks: {len(chunks)}</p>", unsafe_allow_html=True)
-                tokens, embedding_cost = calculate_embedding_cost(chunks)
-                # st.write(f'Embedding cost: ${embedding_cost: .4f}')
-                
-                st.write(f"<p style='color: green; font-size: 20px; font-weight: bold;'>Embedding cost: ${embedding_cost: .4f}</p>", unsafe_allow_html=True)
-                vector_store = create_embeddings(chunks)
-                
-                st.session_state.vs = vector_store
-                st.success("The file has been uploaded, chunked, and embedded successfully")
+                verify_url_field(url_un)
+                with st.spinner('Reading, chunking and embedding file ....'):
+                    from langchain_community.document_loaders import WebBaseLoader
+                    # from langchain_community.document_loaders import UnstructuredURLLoader
+                    loader = WebBaseLoader(url)
+                    data = loader.load()
+                    chunks = chunk_data(data, chunk_size=chunk_size)
+                    # st.write(f' Chunk Size : {chunk_size}, Chunks: {len(chunks)}')
+                    st.write(f"<p style='color: red; font-size: 20px; font-weight: bold;'>Chunk Size: {chunk_size}, Chunks: {len(chunks)}</p>", unsafe_allow_html=True)
+                    tokens, embedding_cost = calculate_embedding_cost(chunks)
+                    # st.write(f'Embedding cost: ${embedding_cost: .4f}')
+                    
+                    st.write(f"<p style='color: green; font-size: 20px; font-weight: bold;'>Embedding cost: ${embedding_cost: .4f}</p>", unsafe_allow_html=True)
+                    vector_store = create_embeddings(chunks)
+                    
+                    st.session_state.vs = vector_store
+                    st.success("The file has been uploaded, chunked, and embedded successfully")
 
 
-        if uploaded_file and add_data:
-            with st.spinner('Reading, chunking and embedding file ....'):
-                bytes_data = uploaded_file.read()
-                file_name = os.path.join('./', uploaded_file.name)
-                with open(file_name, 'wb') as f:
-                    f.write(bytes_data)
-                data = load_document(file_name)
-                chunks = chunk_data(data, chunk_size=chunk_size)
-                # st.write(f' Chunk Size : {chunk_size}, Chunks: {len(chunks)}')
-                st.write(f"<p style='color: red; font-size: 20px; font-weight: bold;'>Chunk Size: {chunk_size}, Chunks: {len(chunks)}</p>", unsafe_allow_html=True)
-                tokens, embedding_cost = calculate_embedding_cost(chunks)
-                # st.write(f'Embedding cost: ${embedding_cost: .4f}')
-                st.write(f"<p style='color: green; font-size: 20px; font-weight: bold;'>Embedding cost: ${embedding_cost: .4f}</p>", unsafe_allow_html=True)
-                vector_store = create_embeddings(chunks)
-                st.session_state.vs = vector_store
-                st.success("The file has been uploaded, chunked, and embedded successfully")
+
+        if add_data:
+            if len(api_key) < 1:
+                st.error("API key is missing. Please provide a valid API key. referesh to continue")
+            else:
+                if api_key:
+                    os.environ['OPENAI_API_KEY'] = api_key
+                    verify_api_key(api_key=api_key)
+                    # verify_uploaded_file(uploaded_file=uploaded_file)
+                    if uploaded_file is None:
+                        st.error(" file not uploaded")
+                    else:
+                        with st.spinner('Reading, chunking and embedding file ....'):
+                            bytes_data = uploaded_file.read()
+                            file_name = os.path.join('./', uploaded_file.name)
+                            with open(file_name, 'wb') as f:
+                                f.write(bytes_data)
+                            data = load_document(file_name)
+                            chunks = chunk_data(data, chunk_size=chunk_size)
+                            # st.write(f' Chunk Size : {chunk_size}, Chunks: {len(chunks)}')
+                            st.write(f"<p style='color: red; font-size: 20px; font-weight: bold;'>Chunk Size: {chunk_size}, Chunks: {len(chunks)}</p>", unsafe_allow_html=True)
+                            tokens, embedding_cost = calculate_embedding_cost(chunks)
+                            # st.write(f'Embedding cost: ${embedding_cost: .4f}')
+                            st.write(f"<p style='color: green; font-size: 20px; font-weight: bold;'>Embedding cost: ${embedding_cost: .4f}</p>", unsafe_allow_html=True)
+                            vector_store = create_embeddings(chunks)
+                            st.session_state.vs = vector_store
+                            st.success("The file has been uploaded, chunked, and embedded successfully")
     
     q = st.text_input('Lets help you answer questions about your document:', placeholder='Ask a question')
     if q:
