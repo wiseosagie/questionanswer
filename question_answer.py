@@ -80,6 +80,7 @@ def ask_and_get_answer(vector_store, q, k):
     return answer
 
 
+
 # Verify the api key
 def verify_api_key(api_key):
     import openai
@@ -97,6 +98,7 @@ def verify_api_key(api_key):
             prompt="This is a test request to verify the OpenAI API key.",
             max_tokens=5
             )
+            
             # print("API key is valid.")
         except openai.error.AuthenticationError as e:
             st.write("Your API is invalid, re-enter api. Refresh the page")
@@ -217,6 +219,8 @@ if __name__ == "__main__":
 
         api_key = st.text_input('OpenAI API Key:', type='password')
 
+       
+
         # if len(api_key) < 1:
         #     print("api_key IS EMPTY")
         #     st.error("API key is missing. Please provide a valid API key. referesh to continue")
@@ -243,12 +247,18 @@ if __name__ == "__main__":
         # url = ["https://www.wichita.edu/services/its/userservices/documents/ITS_Computer_Purchase_Policy_02-22-19.pdf"]
         print(url_un)
         url=[url_un]
+        import os
+        from dotenv import load_dotenv, find_dotenv
+        load_dotenv(find_dotenv(), override=True)
+        api_key = os.getenv("OPENAI_API_KEY")
+        print('one time ', api_key)
         if check_url_data:
             if len(api_key) < 1:
-                st.error("API key is missing. Please provide a valid API key. referesh to continue")
+                st.error("API key is a missing. Please provide a valid API key. referesh to continue")
 
             if api_key:
                 os.environ['OPENAI_API_KEY'] = api_key
+                print('the correct is ', api_key)
                 verify_api_key(api_key=api_key)
                 verify_url_field(url_un)
                 with st.spinner('Reading, chunking and embedding file ....'):
